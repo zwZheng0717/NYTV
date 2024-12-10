@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纽约交通热力图生成器</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #year-selector {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+        #year-selector label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        #year-selector select, #year-selector button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        #download-button {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #download-button:hover {
+            background-color: #0056b3;
+        }
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 悬浮的选择组件 -->
+    <div id="year-selector">
+        <form method="POST">
+            <label for="start_year">开始年份:</label>
+            <select id="start_year" name="start_year">
+                {% for year in range(min_year, max_year + 1) %}
+                    <option value="{{ year }}" {% if year == selected_start_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="end_year">结束年份:</label>
+            <select id="end_year" name="end_year">
+                {% for year in range(min_year, max_year + 1) %}
+                    <option value="{{ year }}" {% if year == selected_end_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="start_month">开始月份:</label>
+            <select id="start_month" name="start_month">
+                {% for month in range(min_month, max_month + 1) %}
+                    <option value="{{ month }}" {% if month == selected_start_month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="end_month">结束月份:</label>
+            <select id="end_month" name="end_month">
+                {% for month in range(min_month, max_month + 1) %}
+                    <option value="{{ month }}" {% if month == selected_end_month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="start_hour">开始时间 (小时):</label>
+            <select id="start_hour" name="start_hour">
+                {% for hour in range(min_hour, max_hour + 1) %}
+                    <option value="{{ hour }}" {% if hour == selected_start_hour %}selected{% endif %}>{{ hour }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="end_hour">结束时间 (小时):</label>
+            <select id="end_hour" name="end_hour">
+                {% for hour in range(min_hour, max_hour + 1) %}
+                    <option value="{{ hour }}" {% if hour == selected_end_hour %}selected{% endif %}>{{ hour }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit">生成热力图</button>
+        </form>
+        <button id="switch1" onclick="switchToNow()">切换至实际示例</button>
+        <button id="switch2" onclick="switchToPredict()">切换至预测示例</button>
+        <button id="download-button" onclick="downloadHotStreets()">下载热点街道数据</button>
+    </div>
+
+    <!-- 全屏的热力图 -->
+    <iframe src="/static/map.html"></iframe>
+
+    <script>
+        function downloadHotStreets() {
+            window.location.href = "/download_hot_streets";
+        }
+        function switchToNow() {
+            // 发送 AJAX 请求改变 data_file 为实际示例的数据文件
+            fetch("/switch_data_file", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ data_file: "processed_data_with_year.csv" }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 页面重新加载以反映新的数据文件
+                window.location.reload();  // 刷新页面，重新渲染地图
+            });
+        }
+
+        function switchToPredict() {
+            // 发送 AJAX 请求改变 data_file 为预测示例的数据文件
+            fetch("/switch_data_file", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ data_file: "predict_month.csv" }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 页面重新加载以反映新的数据文件
+                window.location.reload();  // 刷新页面，重新渲染地图
+            });
+        }
+    </script>
+</body>
+</html>
