@@ -4,11 +4,15 @@
 
 ## 项目简介
 
-本项目旨在处理纽约市交通数据，通过 Apache Spark 进行大规模数据处理、使用深度学习模型进行交通预测，并通过 Web 界面进行可视化展示。项目分为三个主要模块：
+本项目旨在处理纽约市交通流量数据，通过 Apache Spark 进行大规模数据处理、使用深度学习模型进行交通流量预测，并通过 Web 界面进行可视化展示。项目分为三个主要模块：
 
-- **预测（Predict）**：基于 D2STGNN（Decoupled Dynamic Spatial-Temporal Graph Neural Network）模型进行交通流量预测。
-- **数据处理（DataProcess）**：使用 Apache Spark 和 Apache Sedona 对原始交通数据进行清洗、预处理，并构建交通路网图。
-- **前端展示（Frontend）**：通过 Web 界面展示交通流量数据和预测结果，用户可以查看热力图及切换实际与预测数据。
+- **数据处理（DataProcess）**：使用 Apache Spark 和 Apache Sedona 对原始交通数据进行预处理、格式转换和特征提取，并进行数据聚合，构建交通路网图。
+
+- **预测（Predict）**：基于 D2STGNN（Decoupled Dynamic Spatial-Temporal Graph Neural Network）模型进行未来交通流量预测。
+
+- **前端展示（Frontend）**：通过 Web 界面展示交通流量数据和预测结果，并统计 TOP50 的热点街道，用户可以交互查看不同年份的热力图、切换实际与预测数据、以及下载热点街道数据。
+
+    
 
 
 ## 项目结构
@@ -65,6 +69,8 @@ NYTV-main/
 └── ...
 ```
 
+
+
 ## 环境依赖
 
 ### 数据处理模块
@@ -86,12 +92,14 @@ NYTV-main/
 - **Pandas**
 - **Folium**
 
+
+
 ## 数据集
 
-本项目使用了纽约市交通局（NYC DOT）的[自动交通流量计数数据集](https://data.cityofnewyork.us/Transportation/Automated-Traffic-Volume-Counts/7ym2-wayt/about_data)。该数据集包含纽约市桥梁和道路的交通流量信息，由自动交通记录仪（ATR）采集。
+本项目使用了纽约市交通局（NYC DOT）的[自动交通流量计数数据集](https://data.cityofnewyork.us/Transportation/Automated-Traffic-Volume-Counts/7ym2-wayt/about_data)。该数据集包含纽约市桥梁和道路的交通流量信息样本，由自动交通记录仪（ATR）采集。
 
 - **数据更新时间**：2024 年 9 月 3 日
-- **数据范围**：桥梁和道路上的交通流量数据，包含车辆计数、日期、时间、位置、方向等信息。
+- **数据范围**：各行政区桥梁交叉口和道路上的交通流量数据，包含车辆计数、日期、时间、位置、方向等信息。
 - **数据量**：约 171 万行，14 列
 - **数据字段**：
   - `RequestID`：每个计数请求的唯一 ID
@@ -104,17 +112,21 @@ NYTV-main/
   - `street`、`fromSt`、`toSt`：所在街道、起点街道、终点街道
   - `Direction`：交通方向
 
+
+
 ## 预测模型D2STGNN
 
-预测模块使用了 **D2STGNN（Decoupled Dynamic Spatial-Temporal Graph Neural Network）** 模型，这是一个用于交通预测的先进深度学习模型。该模型能够有效地建模交通数据中的复杂时空相关性。
+预测模块使用了 **D2STGNN（Decoupled Dynamic Spatial-Temporal Graph Neural Network）** 模型，这是一个用于时空序列预测的先进深度学习模型，主要在交通预测领域表现出色。该模型能够有效捕捉复杂的时空依赖关系，建模交通数据中的时空相关性。
 
 ![D2STGNN](https://github.com/GestaltCogTeam/D2STGNN/raw/github/figures/D2STGNN.png)
 
 - **VLDB'22 paper: **["Decoupled Dynamic Spatial-Temporal Graph Neural Network for Traffic Forecasting"](https://arxiv.org/abs/2202.04179)
-
 - **模型特点**：
   - **解耦**：将交通数据的扩散信号和固有信号进行解耦，分别处理，提高预测性能。
-  - **动态图学习**：通过动态图学习模块，捕获交通网络的动态特性。
+  - **动态图学习**：通过动态图学习模块，捕获交通网络随时间变化的动态特性，适应时空关系的变化。
+  - **双阶段注意力**：通过时间和空间注意力机制，提升对时空依赖的建模能力。
+  - **多尺度学习**：结合多尺度特征提取和图神经网络，通过不同的时间窗口长度捕捉不同粒度的时间依赖，将短期波动和长期趋势结合起来，提高了对长时间依赖和局部变化的建模能力和预测性能。
+  - **双域学习**：在时域和频域上同时建模，充分利用数据的时空依赖。
   - **高性能**：在多个真实交通数据集上取得了先进的预测效果。
   
 
@@ -126,9 +138,20 @@ NYTV-main/
 
 ## 数据收集与处理
 
-在` NYCHeatMap.java `中,利用 Spark 对大规模交通数据进行高效处理，包括数据清洗、格式转换和特征提取。
+在` NYCHeatMap.java `中，注册 Spark 插件，利用 Spark 对大规模交通流量数据进行高效处理，包括数据清洗、格式转换和特征提取。重点在于利用 Sedona 的空间函数处理地理信息，如经纬度提取和坐标系统转换，之后按照经纬度、时间和街道名进行数据聚合。
 
-### 1. 数据读取与坐标转换
+### 1. **初始化 Spark 应用并启用 Sedona SQL 扩展**
+
+```java
+// Spark 配置与初始化
+SparkConf conf = new SparkConf().setAppName("NYC Traffic Heatmap").setMaster("local[*]");
+SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
+
+// 注册 Sedona SQL 函数
+SedonaSQLRegistrator.registerAll(spark);
+```
+
+### 2. 数据读取与坐标转换
 
 ```java
 // 加载数据
@@ -138,10 +161,7 @@ Dataset<Row> rawData = spark.read()
     .option("inferSchema", "true")
     .load("src/main/resources/data.csv");
 
-// 注册 Sedona SQL 函数
-SedonaSQLRegistrator.registerAll(spark);
-
-// 创建几何列并转换坐标系
+// 创建几何列并转换坐标系，将WKT格式的空间坐标信息转换为Sedona支持的几何对象，并提取经度和纬度信息
 Dataset<Row> withGeometry = rawData.withColumn("geometry",
     functions.expr("ST_GeomFromWKT(WktGeom)"));
 Dataset<Row> withLatLon = withGeometry.withColumn("geometry_transformed",
@@ -150,7 +170,7 @@ Dataset<Row> withLatLon = withGeometry.withColumn("geometry_transformed",
     .withColumn("lon", functions.expr("ST_X(geometry_transformed)"));
 ```
 
-### 2. 数据聚合
+### 3. 数据聚合
 
 ```java
 // 按经纬度、时间和街道名称聚合流量数据
@@ -175,7 +195,7 @@ Dataset<Row> result = aggregatedData
     .withColumnRenamed("HH", "hour");
 ```
 
-### 3. 数据保存
+### 4. 数据保存
 
 ```java
 // 合并所有分区为一个分区
@@ -275,12 +295,11 @@ singlePartitionResult.write()
 
     - 重新构建该子图的邻接矩阵，尺寸为 `507 x 507`。
 - **预测任务**：
-
-  - **短期预测**：预测未来 12 小时内的交通流量。
-
-  - **长期预测**：预测未来 12 个月内的交通流量。
-
-  - **差异**：主要在于时间维度的处理，短期关注细粒度变化，长期关注趋势变化。
+- **短期预测**：预测未来 12 小时内的交通流量。
+  
+- **长期预测**：预测未来 12 个月内的交通流量。
+  
+- **差异**：主要在于时间维度的处理，短期关注细粒度变化，长期关注趋势变化。
 
 
 
@@ -290,7 +309,7 @@ singlePartitionResult.write()
 
 - **预测结果图**：提供实际流量和预测流量的对比图，展示模型的预测性能。
 
-- **交互功能**：支持选择不同的时间段和区域，实时查看交通状况。
+- **交互功能**：支持选择不同的时间段和区域，实时查看交通状况；提供热点街道数据的下载。
 
 ### 1.应用入口
 
@@ -357,9 +376,10 @@ singlePartitionResult.write()
 ```
 
 
-https://github.com/user-attachments/assets/ce7cbb5d-c44f-4218-9793-93813ef36810
 
-## 团队成员
+效果展示视频：https://github.com/user-attachments/assets/ce7cbb5d-c44f-4218-9793-93813ef36810
+
+## 团队成员分工
 | 姓名   | 学号        | 分工                                                    | 贡献百分比 |
 | ------ | ----------- | ------------------------------------------------------- | ---------- |
 | 郑智玮 | 51275903122 | 实验设计、仓库搭建、代码整合                            | 25%        |
