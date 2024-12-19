@@ -55,7 +55,6 @@
     </style>
 </head>
 <body>
-    <!-- 悬浮的选择组件 -->
     <div id="year-selector">
         <form method="POST">
             <label for="start_year">开始年份:</label>
@@ -107,7 +106,6 @@
         <button id="download-button" onclick="downloadHotStreets()">下载热点街道数据</button>
     </div>
 
-    <!-- 全屏的热力图 -->
     <iframe src="/static/map.html"></iframe>
 
     <script>
@@ -115,35 +113,23 @@
             window.location.href = "/download_hot_streets";
         }
         function switchToNow() {
-            // 发送 AJAX 请求改变 data_file 为实际示例的数据文件
             fetch("/switch_data_file", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ data_file: "processed_data_with_year.csv" }),
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ data_file: "processed_data_with_year.csv" })
             })
             .then(response => response.json())
-            .then(data => {
-                // 页面重新加载以反映新的数据文件
-                window.location.reload();  // 刷新页面，重新渲染地图
-            });
+            .then(() => window.location.reload());
         }
 
         function switchToPredict() {
-            // 发送 AJAX 请求改变 data_file 为预测示例的数据文件
             fetch("/switch_data_file", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ data_file: "predict_month.csv" }),
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ data_file: "predict_month.csv" })
             })
             .then(response => response.json())
-            .then(data => {
-                // 页面重新加载以反映新的数据文件
-                window.location.reload();  // 刷新页面，重新渲染地图
-            });
+            .then(() => window.location.reload());
         }
     </script>
 </body>
